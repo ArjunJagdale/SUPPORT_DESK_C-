@@ -1,0 +1,199 @@
+@model SupportDeskAppNew.Models.Ticket
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Support Ticket
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post" id="createTicketForm">
+                        <div class="mb-4">
+                            <label asp-for="Title" class="form-label fw-semibold">
+                                <i class="fas fa-heading me-2"></i>Ticket Title *
+                            </label>
+                            <input asp-for="Title" class="form-control form-control-lg" 
+                                   placeholder="Enter a clear, descriptive title for your issue" 
+                                   maxlength="200" required/>
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                            <div class="form-text">Please provide a brief, descriptive title for your support request.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Description" class="form-label fw-semibold">
+                                <i class="fas fa-align-left me-2"></i>Description
+                            </label>
+                            <textarea asp-for="Description" class="form-control" rows="6" 
+                                      placeholder="Provide detailed information about your issue, including steps to reproduce, error messages, and any other relevant details..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                            <div class="form-text">The more details you provide, the faster we can resolve your issue.</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label asp-for="Priority" class="form-label fw-semibold">
+                                    <i class="fas fa-exclamation-circle me-2"></i>Priority Level *
+                                </label>
+                                <select asp-for="Priority" class="form-select form-select-lg" required>
+                                    <option value="">Select Priority Level</option>
+                                    <option value="Low">🟢 Low - General questions or minor issues</option>
+                                    <option value="Medium" selected>🟡 Medium - Standard support requests</option>
+                                    <option value="High">🔴 High - Urgent issues affecting work</option>
+                                </select>
+                                <span asp-validation-for="Priority" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-info-circle me-2"></i>Initial Status
+                                </label>
+                                <input type="text" class="form-control form-control-lg" value="Open" readonly 
+                                       style="background-color: #e9ecef;">
+                                <div class="form-text">New tickets are automatically set to "Open" status.</div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Before submitting:</strong> Please ensure you've provided all relevant information. 
+                            This will help our support team resolve your issue more efficiently.
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a class="btn btn-outline-secondary btn-lg me-md-2" asp-action="Index">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Ticket
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="card mt-4 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-question-circle me-2"></i>Need Help?
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <h6><i class="fas fa-clock me-2"></i>Response Times</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li><span class="badge bg-danger">High</span> Within 2 hours</li>
+                                <li><span class="badge bg-warning text-dark">Medium</span> Within 24 hours</li>
+                                <li><span class="badge bg-secondary">Low</span> Within 3 days</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6><i class="fas fa-lightbulb me-2"></i>Tips for Better Support</h6>
+                            <ul class="small mb-0">
+                                <li>Include error messages</li>
+                                <li>Describe steps to reproduce</li>
+                                <li>Mention your browser/device</li>
+                                <li>Attach screenshots if helpful</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <h6><i class="fas fa-phone me-2"></i>Emergency Contact</h6>
+                            <p class="small mb-0">For critical system outages, call our emergency line:</p>
+                            <strong class="text-danger">1-800-SUPPORT</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('createTicketForm');
+        const titleInput = document.querySelector('#Title');
+        const descriptionTextarea = document.querySelector('#Description');
+        
+        // Character count for title
+        if (titleInput) {
+            const titleFeedback = document.createElement('div');
+            titleFeedback.className = 'form-text';
+            titleInput.parentNode.appendChild(titleFeedback);
+            
+            function updateTitleCount() {
+                const remaining = 200 - titleInput.value.length;
+                titleFeedback.textContent = `${remaining} characters remaining`;
+                titleFeedback.className = remaining < 20 ? 'form-text text-warning' : 'form-text';
+            }
+            
+            titleInput.addEventListener('input', updateTitleCount);
+            updateTitleCount();
+        }
+        
+        // Auto-resize textarea
+        if (descriptionTextarea) {
+            descriptionTextarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+        }
+        
+        // Form validation enhancement
+        form.addEventListener('submit', function(e) {
+            const title = titleInput.value.trim();
+            const priority = document.querySelector('#Priority').value;
+            
+            if (!title || !priority) {
+                e.preventDefault();
+                
+                if (!title) {
+                    titleInput.classList.add('is-invalid');
+                    titleInput.focus();
+                }
+                
+                if (!priority) {
+                    document.querySelector('#Priority').classList.add('is-invalid');
+                }
+                
+                // Show error message
+                const errorAlert = document.createElement('div');
+                errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+                errorAlert.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Please fill in all required fields before submitting.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                form.insertBefore(errorAlert, form.firstChild);
+                
+                return false;
+            }
+            
+            // Show loading state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+            submitBtn.disabled = true;
+            
+            // Re-enable button after 3 seconds in case of form validation errors
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }, 3000);
+        });
+        
+        // Remove validation classes on input
+        titleInput.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+        
+        document.querySelector('#Priority').addEventListener('change', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
+</script>

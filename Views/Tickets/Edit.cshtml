@@ -1,0 +1,249 @@
+@model SupportDeskAppNew.Models.Ticket
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-edit me-2"></i>Edit Ticket #@Model.Id
+                    </h3>
+                    <small>Created: @Model.Created.ToString("dd-MM-yyyy HH:mm")</small>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Edit" method="post" id="editTicketForm">
+                        <input type="hidden" asp-for="Id" />
+                        <input type="hidden" asp-for="Created" />
+                        
+                        <div class="mb-4">
+                            <label asp-for="Title" class="form-label fw-semibold">
+                                <i class="fas fa-heading me-2"></i>Ticket Title *
+                            </label>
+                            <input asp-for="Title" class="form-control form-control-lg" 
+                                   maxlength="200" required/>
+                            <span asp-validation-for="Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Description" class="form-label fw-semibold">
+                                <i class="fas fa-align-left me-2"></i>Description
+                            </label>
+                            <textarea asp-for="Description" class="form-control" rows="6"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-4">
+                                <label asp-for="Status" class="form-label fw-semibold">
+                                    <i class="fas fa-flag me-2"></i>Status *
+                                </label>
+                                <select asp-for="Status" class="form-select form-select-lg" required>
+                                    <option value="Open">🟢 Open</option>
+                                    <option value="In Progress">🟡 In Progress</option>
+                                    <option value="Closed">🔴 Closed</option>
+                                </select>
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <label asp-for="Priority" class="form-label fw-semibold">
+                                    <i class="fas fa-exclamation-circle me-2"></i>Priority *
+                                </label>
+                                <select asp-for="Priority" class="form-select form-select-lg" required>
+                                    <option value="Low">🟢 Low</option>
+                                    <option value="Medium">🟡 Medium</option>
+                                    <option value="High">🔴 High</option>
+                                </select>
+                                <span asp-validation-for="Priority" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-calendar me-2"></i>Last Modified
+                                </label>
+                                <input type="text" class="form-control form-control-lg" 
+                                       value="@DateTime.Now.ToString("dd-MM-yyyy HH:mm")" readonly 
+                                       style="background-color: #e9ecef;">
+                            </div>
+                        </div>
+
+                        <!-- Status Change Alert -->
+                        <div class="alert alert-warning d-none" id="statusChangeAlert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Important:</strong> <span id="statusChangeMessage"></span>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                            <div>
+                                <a class="btn btn-outline-secondary btn-lg" asp-action="Index">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                                </a>
+                                <a class="btn btn-outline-info btn-lg ms-2" asp-action="Details" asp-route-id="@Model.Id">
+                                    <i class="fas fa-eye me-2"></i>View Details
+                                </a>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i>Update Ticket
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Ticket History Preview -->
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history me-2"></i>Ticket Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle me-2"></i>Current Details</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Ticket ID:</strong> #@Model.Id</li>
+                                <li><strong>Current Status:</strong> 
+                                    <span class="badge bg-@(Model.Status == "Open" ? "success" : Model.Status == "In Progress" ? "warning text-dark" : "secondary")">
+                                        @Model.Status
+                                    </span>
+                                </li>
+                                <li><strong>Current Priority:</strong> 
+                                    <span class="badge bg-@(Model.Priority == "High" ? "danger" : Model.Priority == "Medium" ? "warning text-dark" : "secondary")">
+                                        @Model.Priority
+                                    </span>
+                                </li>
+                                <li><strong>Created:</strong> @Model.Created.ToString("dd-MM-yyyy HH:mm")</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-lightbulb me-2"></i>Update Guidelines</h6>
+                            <ul class="small">
+                                <li><strong>Open:</strong> Initial state, awaiting review</li>
+                                <li><strong>In Progress:</strong> Being actively worked on</li>
+                                <li><strong>Closed:</strong> Issue resolved or completed</li>
+                            </ul>
+                            <div class="alert alert-info small mt-3 mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Changes will be saved immediately upon submission.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('editTicketForm');
+        const statusSelect = document.querySelector('#Status');
+        const prioritySelect = document.querySelector('#Priority');
+        const statusAlert = document.getElementById('statusChangeAlert');
+        const statusMessage = document.getElementById('statusChangeMessage');
+        const originalStatus = statusSelect.value;
+        const originalPriority = prioritySelect.value;
+        
+        // Monitor status changes
+        statusSelect.addEventListener('change', function() {
+            const newStatus = this.value;
+            statusAlert.classList.add('d-none');
+            
+            if (originalStatus === 'Closed' && newStatus !== 'Closed') {
+                statusMessage.textContent = 'Reopening a closed ticket will notify the support team.';
+                statusAlert.classList.remove('d-none');
+                statusAlert.className = 'alert alert-info';
+            } else if (originalStatus !== 'Closed' && newStatus === 'Closed') {
+                statusMessage.textContent = 'Closing this ticket will mark it as resolved.';
+                statusAlert.classList.remove('d-none');
+                statusAlert.className = 'alert alert-success';
+            } else if (originalStatus === 'Open' && newStatus === 'In Progress') {
+                statusMessage.textContent = 'Moving ticket to In Progress indicates active work has begun.';
+                statusAlert.classList.remove('d-none');
+                statusAlert.className = 'alert alert-warning';
+            }
+        });
+        
+        // Priority change monitoring
+        prioritySelect.addEventListener('change', function() {
+            const newPriority = this.value;
+            
+            if (originalPriority !== 'High' && newPriority === 'High') {
+                const priorityAlert = document.createElement('div');
+                priorityAlert.className = 'alert alert-warning alert-dismissible fade show mt-2';
+                priorityAlert.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Changing priority to High will escalate this ticket for immediate attention.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                this.parentNode.appendChild(priorityAlert);
+                
+                setTimeout(() => priorityAlert.remove(), 5000);
+            }
+        });
+        
+        // Form submission enhancement
+        form.addEventListener('submit', function(e) {
+            const title = document.querySelector('#Title').value.trim();
+            const status = statusSelect.value;
+            const priority = prioritySelect.value;
+            
+            if (!title || !status || !priority) {
+                e.preventDefault();
+                
+                const errorAlert = document.createElement('div');
+                errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+                errorAlert.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Please fill in all required fields before updating.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                form.insertBefore(errorAlert, form.firstChild);
+                return false;
+            }
+            
+            // Show loading state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+            submitBtn.disabled = true;
+            
+            // Re-enable button after timeout
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }, 3000);
+        });
+        
+        // Auto-resize textarea
+        const descriptionTextarea = document.querySelector('#Description');
+        if (descriptionTextarea) {
+            function autoResize() {
+                descriptionTextarea.style.height = 'auto';
+                descriptionTextarea.style.height = descriptionTextarea.scrollHeight + 'px';
+            }
+            
+            descriptionTextarea.addEventListener('input', autoResize);
+            autoResize(); // Initial resize
+        }
+        
+        // Character count for title
+        const titleInput = document.querySelector('#Title');
+        if (titleInput) {
+            const titleFeedback = document.createElement('div');
+            titleFeedback.className = 'form-text';
+            titleInput.parentNode.appendChild(titleFeedback);
+            
+            function updateTitleCount() {
+                const remaining = 200 - titleInput.value.length;
+                titleFeedback.textContent = `${remaining} characters remaining`;
+                titleFeedback.className = remaining < 20 ? 'form-text text-warning' : 'form-text';
+            }
+            
+            titleInput.addEventListener('input', updateTitleCount);
+            updateTitleCount();
+        }
+    });
+</script>

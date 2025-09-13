@@ -1,0 +1,477 @@
+Here are files of my current project about support desk, ticket raise. I want you to enhacne the code, by making chnages to give files, i guess we will skip adding new files for now. In the screenshot, i have given the directory strucutre and current UI.
+1] F:\full stack\.NET projects\SupportDeskAppNew\Controllers\TicketController.cs - 
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SupportDeskAppNew.Data;
+using SupportDeskAppNew.Models;
+
+namespace SupportDeskAppNew.Controllers
+{
+    public class TicketsController : Controller
+    {
+        private readonly AppDbContext _context;
+
+        public TicketsController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: Tickets
+        public async Task<IActionResult> Index(string searchTerm, string statusFilter, string priorityFilter)
+        {
+            var tickets = from t in _context.Tickets select t;
+
+            // Search by Title or Description
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                tickets = tickets.Where(t =>
+                    t.Title.Contains(searchTerm) ||
+                    (t.Description != null && t.Description.Contains(searchTerm)));
+            }
+
+            // Filter by Status
+            if (!string.IsNullOrWhiteSpace(statusFilter) && statusFilter != "All")
+            {
+                tickets = tickets.Where(t => t.Status == statusFilter);
+            }
+
+            // Filter by Priority
+            if (!string.IsNullOrWhiteSpace(priorityFilter) && priorityFilter != "All")
+            {
+                tickets = tickets.Where(t => t.Priority == priorityFilter);
+            }
+
+            ViewBag.SearchTerm = searchTerm;
+            ViewBag.StatusFilter = statusFilter;
+            ViewBag.PriorityFilter = priorityFilter;
+
+            return View(await tickets.OrderByDescending(t => t.Created).ToListAsync());
+        }
+
+        // GET: Tickets/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var ticket = await _context.Tickets.FirstOrDefaultAsync(m => m.Id == id);
+            if (ticket == null) return NotFound();
+
+            return View(ticket);
+        }
+
+        // GET: Tickets/Create
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        // POST: Tickets/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create([Bind("Id,Title,Description,Status,Priority")] Ticket ticket)
+        {
+            if (ModelState.IsValid)
+            {
+                ticket.Created = DateTime.Now;
+                _context.Add(ticket);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+            return View(ticket);
+        }
+
+        // GET: Tickets/Edit/5
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null) return NotFound();
+
+            return View(ticket);
+        }
+
+        // POST: Tickets/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Status,Priority,Created")] Ticket ticket)
+        {
+            if (id != ticket.Id) return NotFound();
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(ticket);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!_context.Tickets.Any(e => e.Id == ticket.Id)) return NotFound();
+                    else throw;
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            return View(ticket);
+        }
+    }
+}
+
+2] F:\full stack\.NET projects\SupportDeskAppNew\Views\Tickets\Index.cshtml - 
+@model IEnumerable<SupportDeskAppNew.Models.Ticket>
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var searchTerm = ViewBag.SearchTerm as string ?? "";
+    var statusFilter = ViewBag.StatusFilter as string ?? "All";
+    var priorityFilter = ViewBag.PriorityFilter as string ?? "All";
+}
+
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Support Desk</h1>
+
+    <form method="get" class="mb-3">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <input type="text" name="searchTerm" value="@searchTerm" class="form-control" placeholder="Search tickets..." />
+            </div>
+            <div class="col-md-3">
+                <select name="statusFilter" class="form-select">
+                    <option value="All" selected="@(statusFilter == "All")">All Statuses</option>
+                    <option value="Open" selected="@(statusFilter == "Open")">Open</option>
+                    <option value="Closed" selected="@(statusFilter == "Closed")">Closed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="priorityFilter" class="form-select">
+                    <option value="All" selected="@(priorityFilter == "All")">All Priorities</option>
+                    <option value="High" selected="@(priorityFilter == "High")">High</option>
+                    <option value="Medium" selected="@(priorityFilter == "Medium")">Medium</option>
+                    <option value="Low" selected="@(priorityFilter == "Low")">Low</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-grid">
+                <button type="submit" class="btn btn-outline-primary">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-end mb-3">
+        <a class="btn btn-primary" asp-action="Create">Create Ticket</a>
+    </div>
+
+    <div class="card shadow-sm">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Title</td>
+                    <td>
+                        <span class="badge bg-@(item.Status == "Open" ? "success" : "secondary")">
+                            @item.Status
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-@(item.Priority == "High" ? "danger" : item.Priority == "Medium" ? "warning text-dark" : "secondary")">
+                            @item.Priority
+                        </span>
+                    </td>
+                    <td>@item.Created.ToString("dd-MM-yyyy HH:mm")</td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">View</a>
+                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+3] F:\full stack\.NET projects\SupportDeskAppNew\Controllers\TicketController.cs - 
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SupportDeskAppNew.Data;
+using SupportDeskAppNew.Models;
+
+namespace SupportDeskAppNew.Controllers
+{
+    public class TicketsController : Controller
+    {
+        private readonly AppDbContext _context;
+
+        public TicketsController(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: Tickets
+        public async Task<IActionResult> Index(string searchTerm, string statusFilter, string priorityFilter)
+        {
+            var tickets = from t in _context.Tickets select t;
+
+            // Search by Title or Description
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                tickets = tickets.Where(t =>
+                    t.Title.Contains(searchTerm) ||
+                    (t.Description != null && t.Description.Contains(searchTerm)));
+            }
+
+            // Filter by Status
+            if (!string.IsNullOrWhiteSpace(statusFilter) && statusFilter != "All")
+            {
+                tickets = tickets.Where(t => t.Status == statusFilter);
+            }
+
+            // Filter by Priority
+            if (!string.IsNullOrWhiteSpace(priorityFilter) && priorityFilter != "All")
+            {
+                tickets = tickets.Where(t => t.Priority == priorityFilter);
+            }
+
+            ViewBag.SearchTerm = searchTerm;
+            ViewBag.StatusFilter = statusFilter;
+            ViewBag.PriorityFilter = priorityFilter;
+
+            return View(await tickets.OrderByDescending(t => t.Created).ToListAsync());
+        }
+
+        // GET: Tickets/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var ticket = await _context.Tickets.FirstOrDefaultAsync(m => m.Id == id);
+            if (ticket == null) return NotFound();
+
+            return View(ticket);
+        }
+
+        // GET: Tickets/Create
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        // POST: Tickets/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create([Bind("Id,Title,Description,Status,Priority")] Ticket ticket)
+        {
+            if (ModelState.IsValid)
+            {
+                ticket.Created = DateTime.Now;
+                _context.Add(ticket);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Index));
+            }
+            return View(ticket);
+        }
+
+        // GET: Tickets/Edit/5
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var ticket = await _context.Tickets.FindAsync(id);
+            if (ticket == null) return NotFound();
+
+            return View(ticket);
+        }
+
+        // POST: Tickets/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Status,Priority,Created")] Ticket ticket)
+        {
+            if (id != ticket.Id) return NotFound();
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(ticket);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!_context.Tickets.Any(e => e.Id == ticket.Id)) return NotFound();
+                    else throw;
+                }
+                return RedirectToAction(nameof(Index));
+            }
+            return View(ticket);
+        }
+    }
+}
+
+4] F:\full stack\.NET projects\SupportDeskAppNew\Views\Tickets\Create.cshtml  -
+@model SupportDeskAppNew.Models.Ticket
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Create Ticket</h2>
+
+<form asp-action="Create" method="post">
+    <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input asp-for="Title" class="form-control"/>
+        <span asp-validation-for="Title" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-success">Submit</button>
+    <a class="btn btn-secondary" href="/Tickets">Cancel</a>
+</form>
+
+5] F:\full stack\.NET projects\SupportDeskAppNew\Views\Tickets\Edit.cshtml - 
+@model SupportDeskAppNew.Models.Ticket
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>Edit Ticket</h2>
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input asp-for="Title" class="form-control"/>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Status</label>
+        <select asp-for="Status" class="form-select">
+            <option>Open</option>
+            <option>In Progress</option>
+            <option>Closed</option>
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a class="btn btn-secondary" href="/Tickets">Cancel</a>
+</form>
+
+6] appsettings.json - 
+
+{   "Logging": {     "LogLevel": {       "Default": "Information",       "Microsoft.AspNetCore": "Warning"     }   },   "AllowedHosts": "*" }
+
+
+1] Ticket.js - 
+using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace SupportDeskAppNew.Models
+{
+    public class Ticket
+    {
+        public int Id { get; set; }
+
+        [Required]
+        public string Title { get; set; } = string.Empty;
+
+        public string? Description { get; set; }
+
+        [Required]
+        public string Status { get; set; } = "Open";
+
+        [Required]
+        public string Priority { get; set; } = "Low"; // <-- NEW PROPERTY
+
+        public DateTime Created { get; set; } = DateTime.Now;
+    }
+}
+
+2] AppDbContext.cs - 
+using Microsoft.EntityFrameworkCore;
+using SupportDeskAppNew.Models;
+
+namespace SupportDeskAppNew.Data
+{
+    public class AppDbContext : DbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+        public DbSet<Ticket> Tickets { get; set; }
+    }
+}
+
+3] Program.cs  -
+using Microsoft.EntityFrameworkCore;
+using SupportDeskAppNew.Data;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services
+builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=supportdesk.db"));
+
+var app = builder.Build();
+
+// Middleware pipeline
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Tickets}/{action=Index}/{id?}");
+
+app.Run();
+
+4] Views/Shared/_Layout.cshtml - 
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1 class="mb-4 text-center">Support Desk</h1>
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+</body>
+</html>
+
+5] Views/Tickets/Details.cshtml - 
+@model SupportDeskAppNew.Models.Ticket
+
+<div class="container mt-4">
+    <h2>Ticket Details</h2>
+    <div class="card shadow-sm p-3">
+        <p><strong>Title:</strong> @Model.Title</p>
+        <p><strong>Description:</strong> @Model.Description</p>
+        <p><strong>Status:</strong> @Model.Status</p>
+        <p><strong>Priority:</strong> @Model.Priority</p>
+        <p><strong>Created:</strong> @Model.Created.ToString("dd-MM-yyyy HH:mm")</p>
+    </div>
+    <a class="btn btn-secondary mt-3" asp-action="Index">Back to List</a>
+</div>
